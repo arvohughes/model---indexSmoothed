@@ -1,0 +1,8 @@
+install.packages('tidyverse')
+install.packages('data.table')
+install.packages('zoo')
+install.packages('ggplot2')
+install.packages('RPostgreSQL')
+install.packages('RPostgres')
+install.packages('DBI')
+install.packages('micEconIndex')
