@@ -19,6 +19,7 @@ usePackage('RPostgreSQL')
 usePackage('RPostgres')
 usePackage('DBI')
 usePackage('micEconIndex')
+usePackage('fANCOVA')
 
 ##########################
 
@@ -60,7 +61,7 @@ dbClearResult(query)
 
 
 ###### Generate Index for each SA4 ( Creates individual dataframes for each)
-for (i in sa4_NSW$sa4){
+for (i in sa4_NSW$sa4[19]){
   print(paste0("Doing SA4 = ",i))
 query<-dbSendQuery(con,glue::glue("select  sa4, phase, percentile_disc(0.5) within group (order by price) as median, count(price) as n
         from (
@@ -90,7 +91,9 @@ dbClearResult(query)
 
 
 phase<-sa4$phase
-assign(paste0('index_',i),data.frame(indexVal=priceIndex( "median","n", 1, sa4,method="Laspeyres" ),phase))
+
+plot(sa4$phase,sa4$median)
+assign(paste0('index_',i),data.frame(indexVal=priceIndex( "median","n", 1, sa4,method="Laspeyres" ),phase,median=sa4$median))
 #sa4_indices<-merge(sa4_indices,data.frame(assign(paste0('index_',i),priceIndex( "median","n", 1, sa4,method="Laspeyres" )),phase),by.x=phase,by.y=phase,all.x = TRUE)
 }
 
@@ -101,21 +104,42 @@ assign(paste0('index_',i),data.frame(indexVal=priceIndex( "median","n", 1, sa4,m
 
 ####### Apply a loess smoother of 10 ( own dataframe)
 
-for (i in sa4_NSW$sa4){
+for (i in sa4_NSW$sa4[19]){
+  
 loessMod10 <- loess(indexVal ~ phase, data=eval(as.name(paste0('index_',i))), span=0.10) # 10% smoothing span
 assign(paste0('index_smoothed_',i),predict(loessMod10)) 
+
 
 plot(eval(as.name(paste0('index_',i)))$indexVal, x=eval(as.name(paste0('index_',i)))$phase, type="l", main=paste0('index_SA4_',i), xlab="Phase", ylab="Index")
 lines(eval(as.name(paste0('index_smoothed_',i))), x=eval(as.name(paste0('index_',i)))$phase[1:length(eval(as.name(paste0('index_smoothed_',i))))], col="blue")
 
 
-assign(paste0('df_index_smoothed_',i),data.frame(sa4=eval(i),property_type_id=2,smoothed_indexVal=eval(as.name(paste0('index_smoothed_',i))),phase=eval(as.name(paste0('index_',i)))$phase[1:length(eval(as.name(paste0('index_smoothed_',i))))]))
+
+FTSE.lo3 <- loess.as(eval(as.name(paste0('index_',i)))$phase,eval(as.name(paste0('index_',i)))$indexVal , degree = 1, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = T)
+assign(paste0('FTSE.lo.predict3_',i),predict(FTSE.lo3,data.frame(eval(as.name(paste0('index_',i)))$phase)))
+
+plot(eval(as.name(paste0('index_',i)))$phase,eval(as.name(paste0('FTSE.lo.predict3_',i))),main=paste0('index_SA4_',i), xlab="Phase", ylab="Index")
+#predict(FTSE.lo3,data.frame(eval(as.name(paste0('index_',i)))$phase))
+
+#plot(paste0('index_',i)$phase,paste0('FTSE.lo.predict3_',i))
 
 
-dbWriteTable(con, "sa4_index_smoothed", eval(as.name(paste0('df_index_smoothed_',i))), append = TRUE)
+#assign(paste0('df_index_smoothed_',i),data.frame(sa4=eval(i),property_type_id=2,smoothed_indexVal=eval(as.name(paste0('index_smoothed_',i))),phase=eval(as.name(paste0('index_',i)))$phase[1:length(eval(as.name(paste0('index_smoothed_',i))))]))
+#dbWriteTable(con, "sa4_index_smoothed", eval(as.name(paste0('df_index_smoothed_',i))), append = TRUE)
 
 }
 
 ##########################################3
 
+
+
+FTSE.lo3 <- loess.as(index_110$phase,index_110$indexVal , degree = 1, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = T)
+FTSE.lo.predict3 <- predict(FTSE.lo3,data.frame(phase))
+
+plot(phase,FTSE.lo.predict3)
+
+
+
+plot(eval(as.name(paste0('index_',i)))$indexVal, x=eval(as.name(paste0('index_',i)))$phase, type="l", main=paste0('index_SA4_',i), xlab="Phase", ylab="Index")
+lines(eval(as.name(paste0('index_smoothed_',i))), x=eval(as.name(paste0('index_',i)))$phase[1:length(eval(as.name(paste0('index_smoothed_',i))))], col="blue")
 

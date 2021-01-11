@@ -68,9 +68,6 @@ dbClearResult(query)
 dbSendQuery(con, "TRUNCATE TABLE sa4_index_smoothed")
 #############################
 
-
-
-###### Generate Index for each SA4 ( Creates individual dataframes for each)
 ###### Generate Index for each SA4 ( Creates individual dataframes for each)
 for (i in sa4_NSW){
   print(paste0("Doing SA4 = ",i))
